@@ -11,12 +11,14 @@ st.set_page_config(layout="wide", page_title="Dashboard de Segurança por FPSO")
 st.title("📊 Dashboard de Segurança - FPSOs")
 
 # --- Upload do arquivo ---
-uploaded_file = st.file_uploader("Envie o arquivo TRATADO_safeguardOffShore.xlsx", type=["xlsx"])
-if not uploaded_file:
-    st.stop()
+#uploaded_file = st.file_uploader("Envie o arquivo TRATADO_safeguardOffShore.xlsx", type=["xlsx"])
+#if not uploaded_file:
+#    st.stop()
 
 # --- Leitura dos dados ---
-df = pd.read_excel(uploaded_file)
+df = pd.read_excel("https://raw.githubusercontent.com/titetodesco/sphera/main/TRATADO_safeguardOffShore.xlsx")
+
+#df = pd.read_excel(uploaded_file)
 df["Date Occurred"] = pd.to_datetime(df["Date Occurred"], errors="coerce")
 df = df.drop_duplicates(subset=["Event ID"])
 
