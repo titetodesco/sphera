@@ -11,14 +11,10 @@ st.set_page_config(layout="wide", page_title="Dashboard de Segurança por FPSO")
 st.title("📊 Dashboard de Segurança - FPSOs")
 
 # --- Upload do arquivo ---
-#uploaded_file = st.file_uploader("Envie o arquivo TRATADO_safeguardOffShore.xlsx", type=["xlsx"])
-#if not uploaded_file:
-#    st.stop()
-
-# --- Leitura dos dados ---
 df = pd.read_excel("https://raw.githubusercontent.com/titetodesco/sphera/main/TRATADO_safeguardOffShore.xlsx")
 
-#df = pd.read_excel(uploaded_file)
+df["Date Occurred"] = pd.to_datetime(df["Date Occurred"], errors="coerce")
+df = df.drop_duplicates(subset=["Event ID"])
 df["Date Occurred"] = pd.to_datetime(df["Date Occurred"], errors="coerce")
 df = df.drop_duplicates(subset=["Event ID"])
 
@@ -91,6 +87,15 @@ if "Event: Human Factors" in df_fps.columns:
     fig4 = px.bar(hf_counts, x="Human Factor", y="count")
     st.plotly_chart(fig4, use_container_width=True)
 
+    # Tendência ao longo do tempo
+    st.markdown("### 📈 Tendência dos Top 5 Human Factors")
+    df_hf = df_fps.dropna(subset=["Event: Human Factors"]).copy()
+    top_hf = df_hf["Event: Human Factors"].value_counts().nlargest(5).index
+    df_hf = df_hf[df_hf["Event: Human Factors"].isin(top_hf)]
+    trend = df_hf.groupby(["Ano-Mes", "Event: Human Factors"])["Event ID"].nunique().reset_index()
+    fig5 = px.line(trend, x="Ano-Mes", y="Event ID", color="Event: Human Factors", markers=True)
+    st.plotly_chart(fig5, use_container_width=True)
+
 # --- Heatmap: Risk Area × Task ---
 st.markdown("### 🔥 Heatmap: Risk Area × Task / Activity")
 def plot_heatmap(df_heat):
@@ -107,3 +112,15 @@ def plot_heatmap(df_heat):
     st.pyplot(fig)
 
 plot_heatmap(df_fps)
+
+# --- Heatmap: Risk Area × Human Factor ---
+st.markdown("### 🧠🔥 Heatmap: Risk Area × Human Factor")
+df_hf_heat = df_fps.dropna(subset=["Risk Area", "Event: Human Factors"]).copy()
+co2 = df_hf_heat.groupby(["Risk Area", "Event: Human Factors"])["Event ID"].nunique().reset_index(name="count")
+if not co2.empty:
+    mat2 = co2.pivot(index="Risk Area", columns="Event: Human Factors", values="count").fillna(0)
+    fig6, ax2 = plt.subplots(figsize=(1.2*len(mat2.columns), 0.6*len(mat2.index)+2))
+    sns.heatmap(mat2, annot=True, fmt=".0f", cmap="BuPu", cbar_kws={"label": "Nº de eventos"}, ax=ax2)
+    st.pyplot(fig6)
+else:
+    st.info("Sem dados suficientes para Risk Area × Human Factor.")
