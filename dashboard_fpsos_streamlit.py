@@ -10,7 +10,7 @@ st.set_page_config(layout="wide", page_title="Análise de Precursores - FPSOs")
 st.title("🔎 Análise de Precursores por FPSO")
 
 # --- Leitura da planilha diretamente do GitHub ---
-url = "https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPOSITORIO/main/TRATADO_safeguardOffShore.xlsx"
+df = pd.read_excel("https://raw.githubusercontent.com/titetodesco/sphera/main/TRATADO_safeguardOffShore.xlsx")
 df = pd.read_excel(url)
 df["Date Occurred"] = pd.to_datetime(df["Date Occurred"], errors="coerce")
 df = df.drop_duplicates(subset=["Event ID"])
