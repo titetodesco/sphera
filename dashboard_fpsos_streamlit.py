@@ -9,9 +9,10 @@ from datetime import timedelta
 st.set_page_config(layout="wide", page_title="Análise de Precursores - FPSOs")
 st.title("🔎 Análise de Precursores por FPSO")
 
-# --- Leitura da planilha diretamente do GitHub ---
+# --- Leitura dos dados ---
 df = pd.read_excel("https://raw.githubusercontent.com/titetodesco/sphera/main/TRATADO_safeguardOffShore.xlsx")
-df = pd.read_excel(url)
+
+#df = pd.read_excel(uploaded_file)
 df["Date Occurred"] = pd.to_datetime(df["Date Occurred"], errors="coerce")
 df = df.drop_duplicates(subset=["Event ID"])
 
