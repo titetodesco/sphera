@@ -5,14 +5,16 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import timedelta
+import io
+import requests
 
 st.set_page_config(layout="wide", page_title="Análise de Precursores - FPSOs")
 st.title("🔎 Análise de Precursores por FPSO")
 
-# --- Leitura dos dados ---
-df = pd.read_excel("https://raw.githubusercontent.com/titetodesco/sphera/main/TRATADO_safeguardOffShore.xlsx")
-
-#df = pd.read_excel(uploaded_file)
+# --- Leitura da planilha diretamente do GitHub ---
+url = "https://raw.githubusercontent.com/titetodesco/sphera/main/TRATADO_safeguardOffShore.xlsx?raw=true"
+response = requests.get(url)
+df = pd.read_excel(io.BytesIO(response.content))
 df["Date Occurred"] = pd.to_datetime(df["Date Occurred"], errors="coerce")
 df = df.drop_duplicates(subset=["Event ID"])
 
