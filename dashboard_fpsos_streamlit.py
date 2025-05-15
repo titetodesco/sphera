@@ -1,29 +1,21 @@
-# streamlit_dashboard.py
-# Dashboard interativo para análise de eventos offshore por FPSO
+# dashboard_precursores_streamlit.py
+# Análise de precursores e achados por FPSO com filtros por semestre e detecção de padrões
 
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import seaborn as sns
-import matplotlib.pyplot as plt
+from datetime import timedelta
 
-st.set_page_config(layout="wide", page_title="Dashboard de Segurança por FPSO")
-st.title("📊 Dashboard de Segurança - FPSOs")
+st.set_page_config(layout="wide", page_title="Análise de Precursores - FPSOs")
+st.title("🔎 Análise de Precursores por FPSO")
 
-# --- Upload do arquivo ---
-df = pd.read_excel("https://raw.githubusercontent.com/titetodesco/sphera/main/TRATADO_safeguardOffShore.xlsx")
-
-df["Date Occurred"] = pd.to_datetime(df["Date Occurred"], errors="coerce")
-df = df.drop_duplicates(subset=["Event ID"])
+# --- Leitura da planilha diretamente do GitHub ---
+url = "https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPOSITORIO/main/TRATADO_safeguardOffShore.xlsx"
+df = pd.read_excel(url)
 df["Date Occurred"] = pd.to_datetime(df["Date Occurred"], errors="coerce")
 df = df.drop_duplicates(subset=["Event ID"])
 
-# --- Classificação de severidade ---
-def classify_tier_by_type(event_type):
-    if pd.isna(event_type): return "Indefinido"
-    e = event_type.lower().strip()
-    return "Tier 1-2" if e == "incident" else "Tier 3-4" if e in ["observation", "near miss"] else "Indefinido"
-
+# --- Classificação Tier por severidade ---
 def classify_tier_by_severity(row):
     sev = [row.get(c) for c in [
         "Event: Potential Severity - People", "Event: Potential Severity - Asset",
@@ -33,94 +25,73 @@ def classify_tier_by_severity(row):
     if any(str(s).startswith("2") or str(s).startswith("1") or str(s).startswith("0") for s in sev): return "Tier 3-4"
     return "Indefinido"
 
-df["Tier_by_type"] = df["Event Type"].apply(classify_tier_by_type)
 df["Tier_by_severity"] = df.apply(classify_tier_by_severity, axis=1)
-df["Ano-Mes"] = df["Date Occurred"].dt.to_period("M").astype(str)
+df["Ano"] = df["Date Occurred"].dt.year
+df["Mes"] = df["Date Occurred"].dt.month
 
-# --- Seleção de FPSO ---
+# --- Filtros ---
 fpsos_top = df["Location"].value_counts().nlargest(5).index.tolist()
-selected_fpso = st.selectbox("Selecione a FPSO para análise:", fpsos_top)
-df_fps = df[df["Location"] == selected_fpso].copy()
+col1, col2 = st.columns(2)
+selected_fpso = col1.selectbox("Selecione a FPSO:", fpsos_top)
+selected_year = col2.selectbox("Ano:", sorted(df["Ano"].dropna().unique().astype(int)))
+semestre = st.radio("Semestre:", ["1", "2"], horizontal=True)
 
-# --- Filtros adicionais ---
-col_f1, col_f2 = st.columns(2)
-selected_event_type = col_f1.multiselect("Filtrar por tipo de evento:", options=df_fps["Event Type"].dropna().unique(), default=list(df_fps["Event Type"].dropna().unique()))
-tier_base = col_f2.radio("Selecionar classificação de Tier:", ["Tier_by_type", "Tier_by_severity"])
+mes_range = range(1, 7) if semestre == "1" else range(7, 13)
+df_sel = df[(df["Location"] == selected_fpso) &
+            (df["Ano"] == selected_year) &
+            (df["Mes"].isin(mes_range))].copy()
 
-# Aplicar filtros
-df_fps = df_fps[df_fps["Event Type"].isin(selected_event_type)]
+# --- Timeline de eventos ---
+st.subheader("📆 Timeline de Eventos")
+df_plot = df_sel.dropna(subset=["Date Occurred"])
+df_plot = df_plot.sort_values("Date Occurred")
+fig_timeline = px.scatter(df_plot,
+                          x="Date Occurred", y="Event Type",
+                          color="Tier_by_severity",
+                          hover_data=["Event ID", "Risk Area", "Task / Activity"],
+                          title="Eventos por tipo e severidade no período selecionado")
+st.plotly_chart(fig_timeline, use_container_width=True)
 
-# --- KPIs ---
-st.markdown("### 📍 Visão Geral")
-col1, col2, col3 = st.columns(3)
-col1.metric("Eventos totais", len(df_fps))
-col2.metric("Tier 1-2", (df_fps[tier_base] == "Tier 1-2").sum())
-col3.metric("Tier 3-4", (df_fps[tier_base] == "Tier 3-4").sum())
+# --- Detecção de precursores ---
+st.subheader("🧠 Detecção de Precursores para Incidentes")
+achados = []
+incidents = df_sel[df_sel["Event Type"].str.lower() == "incident"]
 
-# --- Gráfico de tendência ---
-st.markdown(f"### 📈 Tendência mensal por {tier_base.replace('_', ' ')}")
-df_tmp = df_fps.groupby(["Ano-Mes", tier_base]).size().reset_index(name="Eventos")
-fig1 = px.line(df_tmp, x="Ano-Mes", y="Eventos", color=tier_base, markers=True)
-st.plotly_chart(fig1, use_container_width=True)
+for _, inc in incidents.iterrows():
+    inc_date = inc["Date Occurred"]
+    inc_id = inc["Event ID"]
+    inc_area = inc["Risk Area"]
+    inc_task = inc["Task / Activity"]
+    inc_hf = inc.get("Event: Human Factors", None)
 
-# --- Distribuições ---
-st.markdown("### 📊 Principais categorias")
-c1, c2 = st.columns(2)
+    mask = (df_sel["Date Occurred"] >= inc_date - timedelta(days=30)) & \
+           (df_sel["Date Occurred"] < inc_date) & \
+           (df_sel["Event Type"].str.lower().isin(["observation", "near miss"]))
+    anteriores = df_sel[mask]
 
-with c1:
-    task_counts = df_fps["Task / Activity"].value_counts().nlargest(10).reset_index()
-    task_counts.columns = ["Task / Activity", "count"]
-    fig2 = px.bar(task_counts, x="Task / Activity", y="count", title="Top 10 Task / Activity")
-    st.plotly_chart(fig2, use_container_width=True)
+    matches = anteriores[
+        (anteriores["Risk Area"] == inc_area) |
+        (anteriores["Task / Activity"] == inc_task) |
+        (anteriores["Event: Human Factors"] == inc_hf)
+    ]
 
-with c2:
-    risk_counts = df_fps["Risk Area"].value_counts().nlargest(8).reset_index()
-    risk_counts.columns = ["Risk Area", "count"]
-    fig3 = px.pie(risk_counts, names="Risk Area", values="count", title="Distribuição por Risk Area")
-    st.plotly_chart(fig3, use_container_width=True)
+    if not matches.empty:
+        achados.append({
+            "Data": inc_date.date(),
+            "Evento ID": inc_id,
+            "Risk Area": inc_area,
+            "Task": inc_task,
+            "Human Factor": inc_hf,
+            "Qtd Precursores": len(matches),
+            "Detalhes": matches[["Event ID", "Event Type", "Date Occurred", "Risk Area", "Task / Activity"]]
+        })
 
-# --- Human Factors ---
-if "Event: Human Factors" in df_fps.columns:
-    st.markdown("### 🧠 Top 10 Human Factors")
-    hf_counts = df_fps["Event: Human Factors"].value_counts().nlargest(10).reset_index()
-    hf_counts.columns = ["Human Factor", "count"]
-    fig4 = px.bar(hf_counts, x="Human Factor", y="count")
-    st.plotly_chart(fig4, use_container_width=True)
-
-    # Tendência ao longo do tempo
-    st.markdown("### 📈 Tendência dos Top 5 Human Factors")
-    df_hf = df_fps.dropna(subset=["Event: Human Factors"]).copy()
-    top_hf = df_hf["Event: Human Factors"].value_counts().nlargest(5).index
-    df_hf = df_hf[df_hf["Event: Human Factors"].isin(top_hf)]
-    trend = df_hf.groupby(["Ano-Mes", "Event: Human Factors"])["Event ID"].nunique().reset_index()
-    fig5 = px.line(trend, x="Ano-Mes", y="Event ID", color="Event: Human Factors", markers=True)
-    st.plotly_chart(fig5, use_container_width=True)
-
-# --- Heatmap: Risk Area × Task ---
-st.markdown("### 🔥 Heatmap: Risk Area × Task / Activity")
-def plot_heatmap(df_heat):
-    df_sub = df_heat.dropna(subset=["Risk Area", "Task / Activity"])
-    df_sub = df_sub.drop_duplicates(subset=["Event ID", "Risk Area", "Task / Activity"])
-    co = df_sub.groupby(["Risk Area", "Task / Activity"])["Event ID"].nunique().reset_index(name="count")
-    if co.empty:
-        st.warning("Sem dados suficientes para gerar heatmap.")
-        return
-    mat = co.pivot(index="Risk Area", columns="Task / Activity", values="count").fillna(0)
-    fig, ax = plt.subplots(figsize=(1.2*len(mat.columns), 0.6*len(mat.index)+2))
-    sns.heatmap(mat, annot=True, fmt=".0f", cmap="YlOrRd", cbar_kws={"label": "Nº de eventos"}, ax=ax)
-    ax.set_title("Risk Area × Task / Activity")
-    st.pyplot(fig)
-
-plot_heatmap(df_fps)
-
-# --- Heatmap: Risk Area × Human Factor ---
-st.markdown("### 🧠🔥 Heatmap: Risk Area × Human Factor")
-df_hf_heat = df_fps.dropna(subset=["Risk Area", "Event: Human Factors"]).copy()
-co2 = df_hf_heat.groupby(["Risk Area", "Event: Human Factors"])["Event ID"].nunique().reset_index(name="count")
-if not co2.empty:
-    mat2 = co2.pivot(index="Risk Area", columns="Event: Human Factors", values="count").fillna(0)
-    fig6, ax2 = plt.subplots(figsize=(1.2*len(mat2.columns), 0.6*len(mat2.index)+2))
-    sns.heatmap(mat2, annot=True, fmt=".0f", cmap="BuPu", cbar_kws={"label": "Nº de eventos"}, ax=ax2)
-    st.pyplot(fig6)
+# --- Apresenta achados ---
+if achados:
+    for a in achados:
+        st.markdown(f"### 🚨 Incidente em {a['Data']} (Evento ID: {a['Evento ID']})")
+        st.write(f"Risk Area: **{a['Risk Area']}**, Task: **{a['Task']}**, Human Factor: **{a['Human Factor']}**")
+        st.write(f"Precursores identificados nos 30 dias anteriores: **{a['Qtd Precursores']}**")
+        st.dataframe(a["Detalhes"].sort_values("Date Occurred"))
 else:
-    st.info("Sem dados suficientes para Risk Area × Human Factor.")
+    st.success("Nenhum precursor identificado nos 30 dias anteriores aos incidentes.")
