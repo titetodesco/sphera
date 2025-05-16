@@ -120,7 +120,7 @@ st.write("Eventos por tipo e severidade no período selecionado")
 fig_timeline = px.strip(
     df_fps,
     x="Date Occurred", y="Event Type", color="Tier_by_severity",
-    hover_data=["Event ID", "Risk Area", "Task / Activity"],
+    hover_data=["Event Title", "Risk Area", "Task / Activity"],
     stripmode="overlay"
 )
 fig_timeline.update_traces(marker=dict(size=8, opacity=0.7))
@@ -133,12 +133,9 @@ df_fps = df_fps.sort_values("Date Occurred")
 incidents = df_fps[df_fps["Event Type"].str.lower() == "incident"]
 
 for _, row in incidents.iterrows():
-    evento_id = row["Event ID"]
     data_evento = row["Date Occurred"].date()
     titulo = row.get("Event Title", "").strip()
-    titulo_str = f" — *{titulo}*" if titulo else ""
-
-    st.markdown(f"### 🚨 Incidente em {data_evento} (Evento ID: {evento_id}){titulo_str}")
+    st.markdown(f"### 🚨 Incidente em {data_evento} — *{titulo}*")
 
     st.markdown(
         f"Risk Area: **{row['Risk Area']}**, Task: **{row['Task / Activity']}**, "
