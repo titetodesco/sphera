@@ -11,16 +11,14 @@ import requests
 st.set_page_config(layout="wide", page_title="Análise de Precursores - FPSOs")
 st.title("🔎 Análise de Precursores por FPSO")
 
-# --- Leitura da planilha diretamente do GitHub ---
-url = "https://raw.githubusercontent.com/titetodesco/sphera/main/TRATADO_safeguardOffShore.xlsx?raw=true"
-try:
-    response = requests.get(url)
-    response.raise_for_status()
-    df = pd.read_excel(io.BytesIO(response.content))
-except Exception as e:
-    import streamlit as st
-    st.error(f"Erro ao carregar a planilha: {e}")
+uploaded_file = st.file_uploader("Selecione a planilha", type=["xlsx"])
+if uploaded_file:
+    df = pd.read_excel(uploaded_file)
+    # processa normalmente
+else:
+    st.warning("Por favor, envie uma planilha .xlsx para continuar.")
     st.stop()
+
 
 # --- Classificação Tier por severidade ---
 def classify_tier_by_severity(row):
