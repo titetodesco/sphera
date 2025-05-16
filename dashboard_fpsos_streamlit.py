@@ -13,10 +13,14 @@ st.title("🔎 Análise de Precursores por FPSO")
 
 # --- Leitura da planilha diretamente do GitHub ---
 url = "https://raw.githubusercontent.com/titetodesco/sphera/main/TRATADO_safeguardOffShore.xlsx?raw=true"
-response = requests.get(url)
-df = pd.read_excel(io.BytesIO(response.content))
-df["Date Occurred"] = pd.to_datetime(df["Date Occurred"], errors="coerce")
-df = df.drop_duplicates(subset=["Event ID"])
+try:
+    response = requests.get(url)
+    response.raise_for_status()  # Verifica se houve erro 404 ou similar
+    df = pd.read_excel(io.BytesIO(response.content))
+except Exception as e:
+    import streamlit as st
+    st.error(f"❌ Erro ao carregar a planilha: {e}")
+    st.stop()
 
 # --- Classificação Tier por severidade ---
 def classify_tier_by_severity(row):
