@@ -119,8 +119,8 @@ st.write("Eventos por tipo e severidade no período selecionado")
 
 fig_timeline = px.strip(
     df_fps,
-    x="Date Occurred", y="Event Type", color="Tier_by_severity",
-    hover_data=["Event Title", "Risk Area", "Task / Activity"],
+    x="Date Occurred", y="Type", color="Tier_by_severity",
+    hover_data=["Title", "Risk Area", "Task / Activity"],
     stripmode="overlay"
 )
 fig_timeline.update_traces(marker=dict(size=8, opacity=0.7))
