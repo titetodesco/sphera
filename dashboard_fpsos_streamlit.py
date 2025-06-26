@@ -134,7 +134,7 @@ incidents = df_fps[df_fps["Event Type"].str.lower() == "incident"]
 
 for _, row in incidents.iterrows():
     data_evento = row["Date Occurred"].date()
-    titulo = row.get("Event Title", "").strip()
+    titulo = row.get("Title", "").strip()
     st.markdown(f"### 🚨 Incidente em {data_evento} — *{titulo}*")
 
     st.markdown(
