@@ -178,8 +178,12 @@ with c1:
         .rename(columns={"index": "Task / Activity", "Task / Activity": "count"})
     )
     task_counts = task_counts.loc[:, ~task_counts.columns.duplicated()]
-    fig2 = px.bar(task_counts, x="Task / Activity", y="count")
+    fig2 = px.bar(task_counts,
+              x="Task / Activity",
+              y="count",
+              title="Top Task / Activity")
     st.plotly_chart(fig2, use_container_width=True)
+
 
 with c2:
     risk_counts = (
