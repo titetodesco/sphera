@@ -197,12 +197,18 @@ with c1:
 with c2:
     risk_counts = (
         df_fps["Risk Area"]
+        .fillna("Sem registro")
         .value_counts(dropna=False)
-        .nlargest(8)
-        .reset_index()
-        .rename(columns={"index": "Risk Area", "Risk Area": "count"})
+        .rename_axis("Risk Area")
+        .reset_index(name="count")
     )
-    fig3 = px.pie(risk_counts, names="Risk Area", values="count")
+
+    fig3 = px.pie(
+        risk_counts.head(8),
+        names="Risk Area",
+        values="count",
+        title="Distribuição das 8 principais Risk Areas"
+    )
     st.plotly_chart(fig3, use_container_width=True)
 
 # ------------------------------------------------------------------
