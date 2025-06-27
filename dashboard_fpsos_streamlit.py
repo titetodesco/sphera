@@ -170,18 +170,27 @@ st.plotly_chart(fig_tendencia, use_container_width=True)
 st.markdown("### Principais categorias")
 c1, c2 = st.columns(2)
 with c1:
+    # 1) contar ocorrências ‒ gera Série
     task_counts = (
         df_fps["Task / Activity"]
+        .fillna("Sem registro")          # opcional: trata NaNs
         .value_counts(dropna=False)
-        .nlargest(10)
-        .reset_index()
-        .rename(columns={"index": "Task / Activity", "Task / Activity": "count"})
     )
-    task_counts = task_counts.loc[:, ~task_counts.columns.duplicated()]
-    fig2 = px.bar(task_counts,
-              x="Task / Activity",
-              y="count",
-              title="Top Task / Activity")
+    # 2) transformar em DataFrame já com nomes corretos
+    task_counts = (
+        task_counts.rename_axis("Task / Activity")   # vira índice → coluna
+                   .reset_index(name="count")        # índice vira coluna
+    )
+    # 3) conferir se ainda restou duplicado (não deveria)
+    assert not task_counts.columns.duplicated().any(), "Há colunas duplicadas!"
+
+    # 4) gráfico
+    fig2 = px.bar(
+        task_counts.head(10),
+        x="Task / Activity",
+        y="count",
+        title="Top Task / Activity (10 mais)"
+    )
     st.plotly_chart(fig2, use_container_width=True)
 
 
