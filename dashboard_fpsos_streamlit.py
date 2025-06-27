@@ -177,6 +177,7 @@ with c1:
         .reset_index()
         .rename(columns={"index": "Task / Activity", "Task / Activity": "count"})
     )
+    task_counts = task_counts.loc[:, ~task_counts.columns.duplicated()]
     fig2 = px.bar(task_counts, x="Task / Activity", y="count")
     st.plotly_chart(fig2, use_container_width=True)
 
