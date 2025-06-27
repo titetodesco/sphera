@@ -45,7 +45,7 @@ STOPWORDS_ALL = STOPWORDS.union(PORTUGUESE_STOPS).union(CUSTOM_STOPS)
 # 📥  Leitura e pré-processamento
 # ------------------------------------------------------------------
 RAW_URL = (
-    "https://raw.githubusercontent.com/titetodesco/sphera/main/data/"
+    "https://raw.githubusercontent.com/titetodesco/sphera/main/"
     "TRATADO_safeguardOffShore.xlsx"
 )
 
