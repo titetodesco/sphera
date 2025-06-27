@@ -172,7 +172,7 @@ c1, c2 = st.columns(2)
 with c1:
     task_counts = (
         df_fps["Task / Activity"]
-        .value_counts()
+        .value_counts(dropna=False)
         .nlargest(10)
         .reset_index()
         .rename(columns={"index": "Task / Activity", "Task / Activity": "count"})
@@ -183,7 +183,7 @@ with c1:
 with c2:
     risk_counts = (
         df_fps["Risk Area"]
-        .value_counts()
+        .value_counts(dropna=False)
         .nlargest(8)
         .reset_index()
         .rename(columns={"index": "Risk Area", "Risk Area": "count"})
@@ -198,7 +198,7 @@ if "Event: Human Factors" in df_fps.columns:
     st.markdown("### Top 10 Human Factors")
     hf_counts = (
         df_fps["Event: Human Factors"]
-        .value_counts()
+        .value_counts(dropna=False)
         .nlargest(10)
         .reset_index()
         .rename(columns={"index": "Human Factor", "Event: Human Factors": "count"})
