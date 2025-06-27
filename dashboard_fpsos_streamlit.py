@@ -217,13 +217,19 @@ with c2:
 if "Event: Human Factors" in df_fps.columns:
     st.markdown("### Top 10 Human Factors")
     hf_counts = (
-        df_fps["Event: Human Factors"]
-        .value_counts(dropna=False)
-        .nlargest(10)
-        .reset_index()
-        .rename(columns={"index": "Human Factor", "Event: Human Factors": "count"})
+    df_fps["Human Factor"]
+        .fillna("Sem registro")             # opcional: trata NaNs
+        .value_counts(dropna=False)         # conta tudo
+        .rename_axis("Human Factor")        # vira índice ➜ coluna
+        .reset_index(name="count")          # 2 colunas únicas
     )
-    fig4 = px.bar(hf_counts, x="Human Factor", y="count")
+
+    fig4 = px.bar(
+        hf_counts.head(10),
+        x="Human Factor",
+        y="count",
+        title="Top 10 Human Factors"
+    )
     st.plotly_chart(fig4, use_container_width=True)
 
 # ------------------------------------------------------------------
