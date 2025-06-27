@@ -35,17 +35,42 @@ STOPWORDS_ALL = STOPWORDS.union(PORTUGUESE_STOPS).union(CUSTOM_STOPS)
 # ------------------------------------------------------------------
 # 📂  Upload
 # ------------------------------------------------------------------
-uploaded_file = st.file_uploader("Envie o arquivo TRATADO_safeguardOffShore.xlsx",
-                                 type=["xlsx"])
-if not uploaded_file:
-    st.stop()
+#uploaded_file = st.file_uploader("Envie o arquivo TRATADO_safeguardOffShore.xlsx",
+#                                 type=["xlsx"])
+#if not uploaded_file:
+#    st.stop()
+
 
 # ------------------------------------------------------------------
 # 📥  Leitura e pré-processamento
 # ------------------------------------------------------------------
-df = pd.read_excel(uploaded_file)
+RAW_URL = (
+    "https://raw.githubusercontent.com/titetodesco/sphera/main/data/"
+    "TRATADO_safeguardOffShore.xlsx"
+)
+
+@st.cache_data(ttl=3600)   # cache 1 h para não baixar a cada refresh
+def load_data(url: str) -> pd.DataFrame:
+    # engine="openpyxl" evita avisos em .xlsx
+    return pd.read_excel(url, engine="openpyxl")
+
+# Se ainda quiser manter a opção de upload manual:
+if "uploaded_file" in st.session_state and st.session_state.uploaded_file:
+    df = pd.read_excel(st.session_state.uploaded_file, engine="openpyxl")
+else:
+    df = load_data(RAW_URL)   # ← lê direto do GitHub
+
+# continue o pré-processamento normalmente
 df["Date Occurred"] = pd.to_datetime(df["Date Occurred"], errors="coerce")
 df = df.drop_duplicates(subset=["Event ID"])
+
+
+# ------------------------------------------------------------------
+# 📥  Leitura e pré-processamento
+# ------------------------------------------------------------------
+#df = pd.read_excel(uploaded_file)
+#df["Date Occurred"] = pd.to_datetime(df["Date Occurred"], errors="coerce")
+#df = df.drop_duplicates(subset=["Event ID"])
 
 # ---- Classificações auxiliares
 def classify_tier_by_type(event_type: str) -> str:
