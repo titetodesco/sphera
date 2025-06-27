@@ -217,7 +217,7 @@ with c2:
 if "Event: Human Factors" in df_fps.columns:
     st.markdown("### Top 10 Human Factors")
     hf_counts = (
-    df_fps["Human Factor"]
+    df_fps["Event: Human Factors"]
         .fillna("Sem registro")             # opcional: trata NaNs
         .value_counts(dropna=False)         # conta tudo
         .rename_axis("Human Factor")        # vira índice ➜ coluna
