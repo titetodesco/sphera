@@ -372,7 +372,7 @@ df_fps = df_fps[(df_fps["Event Type"].isin(selected_event_type)) &
 # ------------------------------------------------------------------
 # 🧠 Detecção de Precursores com Embeddings
 # ------------------------------------------------------------------
-#st.markdown("## 🧠 Detecção de Precursores com Embeddings")
+st.markdown("## 🧠 Detecção de Precursores com Embeddings")
 
 model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 df_prec = pd.read_excel(PRECURSOR_URL)
