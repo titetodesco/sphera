@@ -289,128 +289,55 @@ st.plotly_chart(fig_timeline, use_container_width=True)
 # ------------------------------------------------------------------
 # 🧠 Detecção de Precursores com base textual (Dicionário)
 # ------------------------------------------------------------------
-# dashboard_fpsos_streamlit_embeddings.py
-# Dashboard interativo com detecção de precursores usando embeddings
-
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-import seaborn as sns
-import matplotlib.pyplot as plt
-from wordcloud import WordCloud, STOPWORDS
-import nltk
-import networkx as nx
-from io import BytesIO
 import unicodedata
-from sentence_transformers import SentenceTransformer, util
 
-# ------------------------------------------------------------------
-# 🔧 Configurações iniciais
-# ------------------------------------------------------------------
-st.set_page_config(page_title="Dashboard de Segurança - FPSOs",
-                   layout="wide",
-                   page_icon="📊")
+st.markdown("## 🧠 Detecção de Precursores com base em Descrição (30 dias anteriores)")
 
-st.title("📊 Dashboard de Segurança - FPSOs")
-
-try:
-    nltk.data.find("corpora/stopwords")
-except LookupError:
-    nltk.download("stopwords")
-
-PORTUGUESE_STOPS = set(nltk.corpus.stopwords.words("portuguese"))
-CUSTOM_STOPS = {"fps", "fpso", "na", "de", "em"}
-STOPWORDS_ALL = STOPWORDS.union(PORTUGUESE_STOPS).union(CUSTOM_STOPS)
-
-# ------------------------------------------------------------------
-# 📂 Leitura dos dados
-# ----------------------------------------------------------------Veja --
-RAW_URL = "https://raw.githubusercontent.com/titetodesco/sphera/main/TRATADO_safeguardOffShore.xlsx"
-PRECURSOR_URL = "https://raw.githubusercontent.com/titetodesco/sphera/main/precursores.xlsx"
-
-@st.cache_data(ttl=3600)
-def load_data(url):
-    return pd.read_excel(url, engine="openpyxl")
-
-df = load_data(RAW_URL)
-df["Date Occurred"] = pd.to_datetime(df["Date Occurred"], errors="coerce")
-df = df.drop_duplicates(subset=["Event ID"])
-
-# Classificacoes auxiliares
-def classify_tier_by_type(event_type):
-    if pd.isna(event_type): return "Indefinido"
-    e = event_type.lower().strip()
-    return "Tier 3-4" if e == "incident" else "Tier 1-2" if e in ["observation", "near miss"] else "Indefinido"
-
-def classify_tier_by_severity(row):
-    sev = [str(row.get(c)) for c in ["Event: Potential Severity - People", "Event: Potential Severity - Asset",
-            "Event: Potential Severity - Environment", "Event: Potential Severity - Community"] if pd.notna(row.get(c))]
-    if any(s.startswith(("3", "4")) for s in sev): return "Tier 3-4"
-    if any(s.startswith(("0", "1", "2")) for s in sev): return "Tier 1-2"
-    return "Indefinido"
-
-df["Tier_by_type"] = df["Event Type"].apply(classify_tier_by_type)
-df["Tier_by_severity"] = df.apply(classify_tier_by_severity, axis=1)
-df["Ano-Mes"] = df["Date Occurred"].dt.to_period("M").astype(str)
-
-# Filtros principais
-fpsos_top = df["Location"].value_counts().nlargest(5).index.tolist()
-selected_fpso = st.selectbox("Selecione a FPSO para análise:", fpsos_top)
-df_fps = df[df["Location"] == selected_fpso].copy()
-
-col_f1, col_f2, col_f3 = st.columns(3)
-selected_event_type = col_f1.multiselect("Tipo de evento:", options=df_fps["Event Type"].dropna().unique(),
-                                         default=list(df_fps["Event Type"].dropna().unique()))
-selected_tier_type = col_f2.multiselect("Tier (Tipo de Evento):", ["Tier 1-2", "Tier 3-4"], default=["Tier 1-2", "Tier 3-4"])
-selected_tier_sev = col_f3.multiselect("Tier (Severidade):", ["Tier 1-2", "Tier 3-4"], default=["Tier 1-2", "Tier 3-4"])
-
-df_fps = df_fps[(df_fps["Event Type"].isin(selected_event_type)) &
-                (df_fps["Tier_by_type"].isin(selected_tier_type)) &
-                (df_fps["Tier_by_severity"].isin(selected_tier_sev))]
-
-# ------------------------------------------------------------------
-# 🧠 Detecção de Precursores com Embeddings
-# ------------------------------------------------------------------
-st.markdown("## 🧠 Detecção de Precursores com Embeddings")
-
-model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-df_prec = pd.read_excel(PRECURSOR_URL)
+# 1. Carregar a planilha de precursores
+df_prec = pd.read_excel("https://raw.githubusercontent.com/titetodesco/sphera/main/precursores.xlsx")
 precursores_en = df_prec["EN"].dropna().str.lower().tolist()
-prec_embeddings = model.encode(precursores_en, convert_to_tensor=True)
 
+# 2. Função para normalizar texto
 def normalize(text):
-    if not isinstance(text, str): return ""
-    return unicodedata.normalize("NFKD", text).encode("ascii", errors="ignore").decode("utf-8").lower()
+    if not isinstance(text, str):
+        return ""
+    text = unicodedata.normalize("NFKD", text).encode("ascii", errors="ignore").decode("utf-8").lower()
+    return text
 
 df_fps["desc_norm"] = df_fps["Description"].apply(normalize)
 
+# 3. Detectar incidentes
 df_fps = df_fps.sort_values("Date Occurred")
 incidents = df_fps[df_fps["Event Type"].str.lower() == "incident"]
 
 for _, row in incidents.iterrows():
     data_evento = row["Date Occurred"].date()
     st.markdown(f"### 🚨 Incidente em {data_evento} — *{row.get('Title', '').strip()}*")
-    st.markdown(f"Risk Area: **{row['Risk Area']}**, Task: **{row['Task / Activity']}**, Human Factor: **{row.get('Event: Human Factors', 'N/A')}**")
+    st.markdown(
+        f"Risk Area: **{row['Risk Area']}**, "
+        f"Task: **{row['Task / Activity']}**, "
+        f"Human Factor: **{row.get('Event: Human Factors', 'N/A')}**"
+    )
 
+    # 4. Buscar eventos anteriores (Observation/Near Miss) dos últimos 30 dias
     inicio = row["Date Occurred"] - pd.Timedelta(days=30)
-    anteriores = df_fps[(df_fps["Date Occurred"] >= inicio) &
-                        (df_fps["Date Occurred"] < row["Date Occurred"]) &
-                        (df_fps["Event Type"].str.lower().isin(["observation", "near miss"]))].copy()
+    anteriores = df_fps[
+        (df_fps["Date Occurred"] >= inicio)
+        & (df_fps["Date Occurred"] < row["Date Occurred"])
+        & (df_fps["Event Type"].str.lower().isin(["observation", "near miss"]))
+    ].copy()
 
-    anteriores["desc_emb"] = model.encode(anteriores["desc_norm"].tolist(), convert_to_tensor=True)
+    anteriores["precursores_identificados"] = anteriores["desc_norm"].apply(
+        lambda x: [p for p in precursores_en if p in x]
+    )
 
-    def detect_prec(embedding):
-        cos_sims = util.cos_sim(embedding, prec_embeddings)[0]
-        indices = (cos_sims > 0.65).nonzero(as_tuple=True)[0].tolist()
-        return [precursores_en[i] for i in indices]
-
-    anteriores["precursores"] = anteriores["desc_emb"].apply(detect_prec)
-    encontrados = anteriores[anteriores["precursores"].str.len() > 0]
+    encontrados = anteriores[anteriores["precursores_identificados"].str.len() > 0]
 
     st.markdown(f"Precursores identificados nos 30 dias anteriores: **{len(encontrados)}**")
     if not encontrados.empty:
-        st.dataframe(encontrados[["Event ID", "Event Type", "Date Occurred", "Description", "precursores"]])
+        st.dataframe(
+            encontrados[["Event ID", "Event Type", "Date Occurred", "Description", "precursores_identificados"]]
+        )
 
 
 # ------------------------------------------------------------------
