@@ -118,8 +118,10 @@ selected_event_type = col_f1.multiselect(
 )
 selected_tier_type = col_f2.multiselect(
     "Tier (Tipo de Evento):",
-    options=["Tier 1-2", "Tier 3-4"],
-    default=["Tier 1-2", "Tier 3-4"],
+#    options=["Tier 1-2", "Tier 3-4"],
+#    default=["Tier 1-2", "Tier 3-4"],
+    options=["Incidente", "Near Miss e Obervation"],
+    default=["Incidente", "Near Miss e Obervation"],
 )
 selected_tier_sev = col_f3.multiselect(
     "Tier (Severidade):",
@@ -145,7 +147,7 @@ k3.metric("Tier 3-4", (df_fps["Tier_by_severity"] == "Tier 3-4").sum())
 # ------------------------------------------------------------------
 # 📈 Tendência semanal
 # ------------------------------------------------------------------
-st.subheader("Tendência semanal de Tier 3-4 (Observations e Near Misses)")
+st.subheader("Tendência semanal de eventos (Observations e Near Misses)")
 df_fps["Semana"] = df_fps["Date Occurred"].dt.to_period("W").astype(str)
 weekly_t3 = (
     df_fps[df_fps["Tier_by_severity"] == "Tier 3-4"]
