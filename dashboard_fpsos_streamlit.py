@@ -439,3 +439,4 @@ with net_col:
         st.plotly_chart(fig_net, use_container_width=True)
     else:
         st.info("Dados insuficientes para gerar Network Graph.")
+Se desejar, posso continuar integrando os outros blocos do seu dashboard (KPIs, WordCloud, Network Graph, etc.) para completar a aplicação. Deseja que eu continue com isso?
