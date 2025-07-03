@@ -287,9 +287,26 @@ fig_timeline.update_layout(height=300, margin=dict(t=30, b=10))
 st.plotly_chart(fig_timeline, use_container_width=True)
 
 # ------------------------------------------------------------------
-# 🧠 Detecção de Precursores
+# 🧠 Detecção de Precursores com base textual (Dicionário)
 # ------------------------------------------------------------------
-st.markdown("## Detecção de Precursores para Incidentes")
+import unicodedata
+
+st.markdown("## 🧠 Detecção de Precursores com base em Descrição (30 dias anteriores)")
+
+# 1. Carregar a planilha de precursores
+df_prec = pd.read_excel("https://raw.githubusercontent.com/titetodesco/sphera/main/precursores.xlsx")
+precursores_en = df_prec["EN"].dropna().str.lower().tolist()
+
+# 2. Função para normalizar texto
+def normalize(text):
+    if not isinstance(text, str):
+        return ""
+    text = unicodedata.normalize("NFKD", text).encode("ascii", errors="ignore").decode("utf-8").lower()
+    return text
+
+df_fps["desc_norm"] = df_fps["Description"].apply(normalize)
+
+# 3. Detectar incidentes
 df_fps = df_fps.sort_values("Date Occurred")
 incidents = df_fps[df_fps["Event Type"].str.lower() == "incident"]
 
@@ -302,23 +319,26 @@ for _, row in incidents.iterrows():
         f"Human Factor: **{row.get('Event: Human Factors', 'N/A')}**"
     )
 
+    # 4. Buscar eventos anteriores (Observation/Near Miss) dos últimos 30 dias
     inicio = row["Date Occurred"] - pd.Timedelta(days=30)
     anteriores = df_fps[
         (df_fps["Date Occurred"] >= inicio)
         & (df_fps["Date Occurred"] < row["Date Occurred"])
-    ]
-    precursores = anteriores[
-        (anteriores["Risk Area"] == row["Risk Area"])
-        & (anteriores["Task / Activity"] == row["Task / Activity"])
-        & (anteriores["Event: Human Factors"] == row["Event: Human Factors"])
-    ]
-    st.markdown(f"Precursores identificados nos 30 dias anteriores: **{len(precursores)}**")
-    if not precursores.empty:
+        & (df_fps["Event Type"].str.lower().isin(["observation", "near miss"]))
+    ].copy()
+
+    anteriores["precursores_identificados"] = anteriores["desc_norm"].apply(
+        lambda x: [p for p in precursores_en if p in x]
+    )
+
+    encontrados = anteriores[anteriores["precursores_identificados"].str.len() > 0]
+
+    st.markdown(f"Precursores identificados nos 30 dias anteriores: **{len(encontrados)}**")
+    if not encontrados.empty:
         st.dataframe(
-            precursores[
-                ["Event ID", "Event Type", "Date Occurred", "Risk Area", "Task / Activity"]
-            ]
+            encontrados[["Event ID", "Event Type", "Date Occurred", "Description", "precursores_identificados"]]
         )
+
 
 # ------------------------------------------------------------------
 # 🌳 Word Cloud & 🔗 Network Graph
