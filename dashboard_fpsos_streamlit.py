@@ -22,16 +22,14 @@ st.set_page_config(page_title="Dashboard de Segurança - FPSOs",
 
 st.title("📊 Dashboard de Segurança - FPSOs")
 
-# Garante que os recursos do NLTK estejam disponíveis
 try:
     nltk.data.find("corpora/stopwords")
 except LookupError:
     nltk.download("stopwords")
 
-PORTUGUESE_STOPS = set(nltk.corpus.stopwords.words("portuguese"))
-CUSTOM_STOPS = {"fps", "fpso", "na", "de", "em"}           # complementares
-STOPWORDS_ALL = STOPWORDS.union(PORTUGUESE_STOPS).union(CUSTOM_STOPS)
-
+ENGLISH_STOPS = set(nltk.corpus.stopwords.words("english"))
+CUSTOM_STOPS = {"fps", "fpso", "na", "de", "em"}
+STOPWORDS_ALL = STOPWORDS.union(ENGLISH_STOPS).union(CUSTOM_STOPS)
 # ------------------------------------------------------------------
 # 📂  Upload
 # ------------------------------------------------------------------
