@@ -147,10 +147,10 @@ k3.metric("Tier 3-4", (df_fps["Tier_by_severity"] == "Tier 3-4").sum())
 # ------------------------------------------------------------------
 # 📈 Tendência semanal
 # ------------------------------------------------------------------
-st.subheader("Tendência semanal de eventos (Observations e Near Misses)")
+st.subheader("Tendência semanal de eventos Tier 1-2 (Observations e Near Misses)")
 df_fps["Semana"] = df_fps["Date Occurred"].dt.to_period("W").astype(str)
 weekly_t3 = (
-    df_fps[df_fps["Tier_by_severity"] == "Tier 3-4"]
+    df_fps[df_fps["Tier_by_severity"] == "Tier 1-2"]
     .groupby("Semana")["Event ID"]
     .nunique()
     .reset_index(name="Frequência")
