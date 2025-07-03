@@ -326,7 +326,7 @@ STOPWORDS_ALL = STOPWORDS.union(PORTUGUESE_STOPS).union(CUSTOM_STOPS)
 # ------------------------------------------------------------------
 # 📂 Leitura dos dados
 # ----------------------------------------------------------------Veja --
-RAW_URL = "https://raw.githubusercontent.com/titetodesco/sphera/main/TRATADO_safeguardOffShore.xlsx"
+#RAW_URL = "https://raw.githubusercontent.com/titetodesco/sphera/main/TRATADO_safeguardOffShore.xlsx"
 PRECURSOR_URL = "https://raw.githubusercontent.com/titetodesco/sphera/main/precursores.xlsx"
 
 @st.cache_data(ttl=3600)
