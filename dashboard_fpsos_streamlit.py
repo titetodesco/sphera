@@ -78,9 +78,9 @@ def classify_tier_by_type(event_type: str) -> str:
         return "Indefinido"
     e = event_type.lower().strip()
     if e == "incident":
-        return "Tier 1-2"
-    if e in {"observation", "near miss"}:
         return "Tier 3-4"
+    if e in {"observation", "near miss"}:
+        return "Tier 1-2"
     return "Indefinido"
 
 
@@ -93,9 +93,9 @@ def classify_tier_by_severity(row) -> str:
     ]
     severities = [str(row.get(c)) for c in sev_cols if pd.notna(row.get(c))]
     if any(s.startswith(("3", "4")) for s in severities):
-        return "Tier 1-2"
-    if any(s.startswith(("0", "1", "2")) for s in severities):
         return "Tier 3-4"
+    if any(s.startswith(("0", "1", "2")) for s in severities):
+        return "Tier 1-2"
     return "Indefinido"
 
 
@@ -118,10 +118,10 @@ selected_event_type = col_f1.multiselect(
 )
 selected_tier_type = col_f2.multiselect(
     "Tier (Tipo de Evento):",
-#    options=["Tier 1-2", "Tier 3-4"],
-#    default=["Tier 1-2", "Tier 3-4"],
-    options=["Incidente", "Near Miss e Obervation"],
-    default=["Incidente", "Near Miss e Obervation"],
+    options=["Tier 1-2", "Tier 3-4"],
+    default=["Tier 1-2", "Tier 3-4"],
+#    options=["Incidente", "Near Miss e Obervation"],
+#    default=["Incidente", "Near Miss e Obervation"],
 )
 selected_tier_sev = col_f3.multiselect(
     "Tier (Severidade):",
