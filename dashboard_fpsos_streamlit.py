@@ -386,3 +386,4 @@ with net_col:
         st.plotly_chart(fig_net, use_container_width=True)
     else:
         st.info("Dados insuficientes para gerar Network Graph.")
+    st.markdown("App desenvolvido por Tite Todesco.")
